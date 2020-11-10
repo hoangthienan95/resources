@@ -30,6 +30,30 @@
 3. [Causal graphs](#3-causal-graphs)
     1. Bayesian networks and causal graphs
     2. Basic building blocks of graphs
+4. [Causal models](#4-causal-models)
+    1. Do operator
+    2. Modularity assumption
+    3. Backdoor adjustment
+    4. Structural causa models
+5. [Randomized experiments and identification](#5-randomized-experiments-and-identification)
+    1. Randomized experiments
+    2. Frontdoor adjustment
+    3. Pear's do-calculus
+    4. Determining identifiability from a graph
+6. [Estimation](#6-estimation)
+    1. Conditional outcome modeling
+    2. Increasing data efficiency
+    3. Propensity scores and IPW
+    4. Other methods
+7. [Unobserved confounding](#7-unobserved-confounding)
+    1. Bounds
+        1. No-assumptions bound
+        2. Monotone treatment response
+        3. Monotone treatment selection
+        4. Optimal treatment selection
+    2. Sensitivity analysis
+        1. Linear single confounder
+        2. Towards more gneral settings
 
 --------------------------------------
 
@@ -88,7 +112,7 @@ In the specific example of the headache and the pill, the difference between pot
 
 In general, because of the confounding association, E[Y(1)] - E[Y(0)] does not equal E[Y|T=1] - E[Y|T=0], because this is a mixture of confounding association and causal association, which is not causal since the condition has a confounding effect.
 
-To obtain causation, we need to make groups comparable, we need to bypass the effect of condition in the treatment. **Randomized control trials (RCT)**randomly distribute the subjects into treatment group or control group, ensuring that condition cannot be a cause of the treatment. In RCT, the 'drunk people' are evenly distributed among the two groups. 
+To obtain causation, we need to make groups comparable, we need to bypass the effect of condition in the treatment. **Randomized control trials (RCT)** randomly distribute the subjects into treatment group or control group, ensuring that condition cannot be a cause of the treatment. In RCT, the 'drunk people' are evenly distributed among the two groups. If the distribution of the outcome varies by levels of the assigned intervention, we say that A has a causal effect on Y.
 
 ### 1.4. Observational studies
 
@@ -144,9 +168,9 @@ The conditional ATE is E[Y(1) - Y(0) | X], which assuming the conditional exchan
 
 Can we simply condition on many covariates to achieve unconfoundedness? No, because it violates positivity, there is a tradeoff betweeen unconfoundedness and positivity.
 
-**Positivity** says that for all values of covariates present in the population (anything with probability > 0), the probability of treatment is > 0 and < 1 for all values of treatment. 0 < P(T=1|X=x) < 1. In the populatoin X=x, if no one is given the treatmen we cannot observe the causal effect of the treatment, because no one got it. And same if everyone got the treatment.
+**Positivity** says that for all values of covariates present in the population (anything with probability > 0), the probability of treatment is > 0 and < 1 for all values of treatment. 0 < P(T=1|X=x) < 1. In the populatoin X=x, if no one is given the treatment we cannot observe the causal effect of the treatment, because no one got it. And same if everyone got the treatment.
 
-Another perspective to positivity is **overlap**. If the population subsets that have received no treatmen (P(X|T=0)) and the population that have all received treatment (P(X|T=1)) have no overlap at all, there is a severe positivity violation. If they overlap, there is no violation among the covariates where there's overlap but in the covariates with no overlap, there is severe positivity violation. If they are completely overlapped, there is no positivity violation. This is the ideal situation for identifiability.
+Another perspective to positivity is **overlap**. If the population subsets that have received no treatment (P(X|T=0)) and the population that have all received treatment (P(X|T=1)) have no overlap at all, there is a severe positivity violation. If they overlap, there is no violation among the covariates where there's overlap but in the covariates with no overlap, there is severe positivity violation. If they are completely overlapped, there is no positivity violation. This is the ideal situation for identifiability.
 
 There is a positivity-unconfoundedness tradeoff: the more covariates you condition on, the more likely you are to satisfy unconfoundedness. But the more covariates you condition on, the worse positivity gets. If you want to estimate ATE (= sum_x(E[Y|T=1, X] - E[Y|T=0, X])) when you have a severe positivity violation, no overlap at all, you have to extrapolate because you are missing data. When summing over all x in the first part, there is no one who hasn't received treatment, there is no data to use. And same for the second part.
 
@@ -206,7 +230,7 @@ This assumes the local Markov assumption, and also that adjacent nodes in the DA
 
 > Causal edges assumption
 
-A variable X is a **cause** of a variable Y if Y can change in response to changes in X. In a directed graph, every parent is a direct cause of all its children. This referst o causal dependencies.
+A variable X is a **cause** of a variable Y if Y can change in response to changes in X. In a directed graph, every parent is a direct cause of all its children. This refers to causal dependencies. Causation is not symmetric, it only flows in one direction.
 
 ### 3.2. Basic building blocks of graphs
 
@@ -222,6 +246,240 @@ To obtain independence between X1 and X3, we can block the path
 
 <div style="text-align:center"><img src="img/graph_dependence_block.png" width="50%"></div>
 
-And so to prove conditional independence in chains, we can use these concepts
+And so to prove conditional independence in chains, we can use these concepts. Equivalent for fork graphs.
 
 <div style="text-align:center"><img src="img/chain_condind.png" width="75%"></div>
+
+In immoralities, X1 and X3 are not associated. X2 (collider) blocks association even when we're not conditioning on it. P(x1, x3) = P(x1) * P(x3).
+
+If we condition on a collider, it unblocks the path, induces dependence between X1 and X3. Opposite as chains and forks.
+
+> As an example, X1 is good-looking, X3 is kindness, and X2 = X1 & X3 is relationship status. In the general population, there is no association between X1 and X3. But if we condition for X2, if we look only at single people, there is an induced association (selection bias) between looks and kindness.
+
+When a collider is conditioned, it induces association between its parents. If you condition on a descendant of X2, that also induces association between X1 and X3.
+
+### 3.3. The flow of association and causation
+
+A path between nodes X and Y is blocked by a conditioning set Z if either of the following is true:
+
+1. Along the path, there is a chain ... -> W -> ... or a fork ... <- W -> ... where W is in the conditioning set Z.
+2. On the path, there is a colider not in the conditioning set Z, and no descendants are in this set either.
+
+> d-separation
+
+Two sets of nodes X and Y are d-separated by a set of nodes Z if all paths between (any node in) X and (any node in) Y are blocked by Z. It implies independence between X and Y.
+
+This is the global Markov assumption, which is equivalent to local Markov assumption. Which is just called Markov assumption.
+
+## 4 Causal models
+
+### The do-operator
+
+When we move from statistical quantities to causal quantities. It makes the distinction between conditioning and intervening.
+
+Conditioning is just restricting the data to a specific subset. But intervening means altering the whole dataset, not just a subset.
+
+* An interventional distribution: P(Y(t)=y) == P(Y=y \| do(T=1)) == P(y \| do(t)).
+* ATE: E[Y | do(T=1)] - E[Y | do(T=0)]
+* An observational distribution: P(Y, T, X) = P(Y | T=t). No intervention on the treatment
+
+Identification: taking a causal estimand and turning it into a statistical estimand. P(y \| do(t)) --> P(y \| t). We can do this by looking at our causal model. These two things are equal if there is no confounding. If there is, P(y \| t) = E<sub>X</sub>[P(y \| t, X)].
+
+### Main assumption: modularity
+
+The causal mechanism for a specific variable in the causal graph is P(x<sub>i</sub> \| pa<sub>i</sub>), all the parents of that variable and all their arrows into that variable.
+
+The **modularity assumption** says that if we intervene on a node X, then only the mechanism P(x<sub>i</sub> \| pa<sub>i</sub>) changes. All other mechanisms P(x<sub>j</sub> \| pa<sub>j</sub>) where i!=j remain unchanged. In other words, the causal mechanisms are modular.
+
+<div style="text-align:center"><img src="img/mod_assum.png" width="75%"></div>
+
+To manipulate a graph, we take the observational data. Pick a variable T, remove its parents. With the modularity assumption, all other factors remain the same so we only manipulate T. With this assumption we can simplify this formula using the **truncated factorization**:
+
+<div style="text-align:center"><img src="img/trunc.png" width="75%"></div>
+
+With this, we can identify P(y \| do(t)) faster.
+
+<div style="text-align:center"><img src="img/trunc_ex.png" width="75%"></div>
+
+### Backdoor adjustment
+
+This is the most common example of identification: we can identify causal effects via the backdoor adjustment.
+
+By intervening on T, and deleting its parents, we can block backdoor / noncausal paths. A set of variables W satisfies the backdoor criterion relative to T and Y if the following are true:
+
+1. W blocks all backdoor paths from T to Y
+2. W does not contain any descendants of T
+
+If W satisfies the backdoor criterion, W is a sufficient adjustment set. W is sufficient to adjust for to get the causal effect of T on Y. Proof on slide 20.
+
+How does this backdoor adjustment relate to the adjustment formula in the potential outcomes chapter? Answer in section 4.4.1 of the ICI book.
+
+### Structural causal models
+
+Structural equation for A as a cause of B: B := f(A, U) where U is some randomness.
+
+If we model the causal mechanism of a variable, this variable is referred to as an *endogenous variable*. And those variables that we do not model how they are caused, and usually have no parents, are *exogenous variables*.
+
+A structural causal model (SCM) is a tuple of the following sets:
+
+1. A set of endogenous variables
+2. A set of exogenous variables
+3. A set of functions, one to generate each endogenous variable as a function of the other variables
+
+Given an SCM M and an interventional SCM M<sub>t</sub> that we get by performing the intervention do(T=t), the modularity assumption states that M and M<sub>t</sub> share all of their structural equations except the structural equation for T, which is T := t in M<sub>t</sub>.
+
+M:
+
+* T := f<sub>T</sub>(X, U<sub>T</sub>)
+* Y := f<sub>Y</sub>(X, T, U<sub>Y</sub>)
+
+M<sub>t</sub>:
+
+* T := t
+* Y := f<sub>Y</sub>(X, T, U<sub>Y</sub>)
+
+Why don't we condition on descendants of treatment?
+
+1. We might block causal associations
+2. We might include collider bias, new post-treatment association, such as the case of immorality
+
+### A complete example with estimation
+
+Effect of sodium intake on blood pressure. Covariates are W, age, and Z, amount of protein excreted in urine. With a simulation, we get a 'true' ATE of 1.05.
+
+<div style="text-align:center"><img src="img/4ex_graph.png" width="75%"></div>
+
+We do not condition on post-treatment covariates like Z because it would give us collider bias, we only condition on W. After estimation:
+
+<div style="text-align:center"><img src="img/4ex_estimate.png" width="75%"></div>
+
+19% error comes from controlling for Z, which creates collider bias and brings the error up.
+
+## 5 Randomized experiments and identification
+
+### Randomized experiments
+
+It is not possible to prove unconfoundedness or prove that the backdoor criterion has been satisfied, because there always could be an unobserved confounders. This is a problem always apparent in observational studies. With RTC, unconfoundedness is guaranteed. The groups in a situation can be made comparable. Some perspectives on RTCs:
+
+1. Comparability and covariate balance
+    * Treatment and control groups are the same in all aspects except treatment. The distribution of all their covariates are the same. Therefore, the difference in observed outcomes between these 2 groups must be because of the treatment. Covariate balance -> association = causation.
+    * Covariate balance exists if the distribution of covariates X is the same across treatment groups. P(X | T=1) =(d) P(X | T=0). =(d) means distribution equality.
+    * *Proof that randomization implies covariate balance*: T is not determined by X, T is independent of X. P(X | T=1) =(d) P(X) and P(X | T=0) =(d) P(X), therefore P(X | T=1) =(d) P(X | T=0)
+    * *Proof that covariate balance implies association is causation*: <div style="text-align:center"><img src="img/rct_ass_caus.png" width="75%"></div>
+2. Exchangeability
+    * It is not relevant which group gets the treatment and which doesn't, because groups are comparable. The assignation of treatment is exchangeable among the two groups. Randomization implies exchangeability.
+3. No backdoor paths
+    * In a graph with T, a confounder X and Y, T is decided randomly, not affected by X. There are therefore no backdoor paths, through X or any other unobserved variables either.
+
+### Frontdoor adjustment
+
+<div style="text-align:center"><img src="img/frontd_adjust.png" width="35%"></div>
+
+In a graph where there is an unobserved confounder, the backdoor path cannot be blocked. With he frontdoor adjustment, it is still possible to identify the causal effect of T on Y. All the causal association flows through M, so we can *focus* on M and isolate the causal association. 3 steps:
+
+1. Identify the causal effect of T on M
+    * P(m | do(t)) = P(m | t). because there is no backdoor path.
+2. Identify the causal effect of M on Y
+    * P(y | do(m)) = &sum;<sub>t</sub> P(y | m,t) P(t). There is a backdoor path (M -> T -> W -> Y), but we can block it by conditioning on T. Use T as a sufficient adjustment set and use the backdoor adjustment.
+3. Combine the above steps to identify the causal effect of T on Y
+    * **frontdoor adjustment formula**: P(y | do(t)) = &sum;<sub>m</sub> P(y | do(m)) P(m | do(t)) = &sum;<sub>m</sub> P(m | t) &sum;<sub>t'</sub> P(y | m,t') P(t')
+
+A set of variables M satisfies the frontdoor criterion relative to T and Y if the following are true:
+
+1. M completely mediates the effect of T on Y (all causal paths from T to Y go through M)
+2. There is no unblocked backdoor path from T to M
+3. All backdoor paths from M to Y are blocked by T
+
+Proof of frontdoor adjustment using the truncated factorization in section 6.1. of the course book
+
+### Pear's do-calculus
+
+It neables the identification of identifiable causal quantities. P(Y \| do(T=t), X=x) where Y, T and X are arbitrary sets. There can be multiple treatments and/or multiple outcomes. Some notation for a causal graph G:
+
+* G<sub>X</sub> is when all children of X are cut off
+* G<sub>X</sub>(with a line over it) is when all parents of X are cut off
+* G<sub>X</sub>(with a line over it)<sub>Z</sub>(with a line under it) is when all parents of X are cut off and Z's children are cut off
+
+<div style="text-align:center"><img src="img/docalc_r1.png" width="75%"></div>
+<div style="text-align:center"><img src="img/docalc_r2.png" width="75%"></div>
+<div style="text-align:center"><img src="img/docalc_r3.png" width="75%"></div>
+
+### Determining identifiability from a graph
+
+See example in video or slides 35-40.
+
+## 6 Estimation
+
+Once we identify statistical estimands from a causal estimand, we can make an estimation, a number, from this statistical estimand.
+
+### Conditional outcome modeling (COM)
+
+Conditional ATE (CATE) = &tau;(x) = E[Y(1) - Y(0) | X=x]
+
+We assume unconfoundedness and positivity, therefore &tau; = E<sub>W</sub>[E[Y|T=1, W] - E[Y|T=0, W]] = E<sub>W</sub>[&mu;(1,W) - &mu;(1,W)]. This is a statistical estimand, and &mu; is the conditional outcome model.
+
+<div style="text-align:center"><img src="img/ate_com.png" width="75%"></div>
+
+When dealing with high dimensions and many weights, the model might ignore *t* (treatment), it could assign it 0 weights. Because it is only one dimension. The estimates of ATE or CATE could be biased towards zero.
+
+### Increasing data efficiency
+
+How to ensure that the model doesn't ignore *t*? We can use grouped COM (GCOM) estimation, two models for each treatment. We don't need *t* as input anymore. In COM, the single model is trained with all the data. Now in GCOM, model for T=1 is fed treatment group data, and the model for T=0 is trained with control group data. The models can have **higher variance than what they would if they were trained with all the data**.
+
+<div style="text-align:center"><img src="img/ate_com.png" width="75%"></div>
+
+Alternative: TARNet hybrid architecture, all data is used for the model, W is the only input, and then the model breaks into 2 heads one for each treatment. Each head uses one part of the data, treatment data for T=1 and control data for T=0.
+
+X-Learner (Künzel et al., 2019) does the following:
+
+1. Make an estimation for T=1 and T=0 as a function of X, assuming X is a sufficient adjustment set and is all observed covariates
+2. Impute ITEs (individual treatment effects). Compare the observed output and the model's estimation for the treatment group and for the control group. For the treatment group for example, ITE = Y<sub>i</sub>(1) - &mu;<sub>1</sub>(x<sub>i</sub>). We use the data from one outcome but all of the data from the treatment group.
+3. Fit a model to predict ITE(1, i) from x<sub>i</sub> in treatment group, and fit a model to predict ITE(0, i) from x<sub>i</sub> in treatment group
+4. Aggregate these two models with a weighting function.
+
+### Propensity scores and IPW (inverse probability weighting)
+
+The propensity for taking treatment, how likely you are to take treatment, is e(W) = P(T=1|W). Given positivity, unconfoundedness given W implies unconfoundedness given e(W). Even if W is high dimensional, e(W) is only a scalar. Instead of conditioning on W, we can condition on e(W) and reduce complexity.
+
+See proof in slide 22 or in the course book in appendix A.2.
+
+Propensity has an implication for the positivity-unconfoundedness tradeoff. Overlap decreases with the dimensionality of the adjustment set. The propensity score reduces the dimensionality of the adjustment set done to 1. Unfortunately, we don't have access to e(W). The best we can do is model it with logistic regression for instance.
+
+Using e(W) instead of W doesn't solve positivity issues when W is high-dimensional.
+
+> Pseudo-populations
+
+We create pseudo-populations (reweighted populations) so that here, association is causation. We rewrite all examples by the IPW. See more about IPW in the course book in Appendix A.3
+
+### Other methods
+
+We can both model &mu;(t, w) and e(w). For example with *doubly robust methods*. See section 7.7 in the course book for other methods which include matching, double machine learning, causal trees and forests.
+
+## 7 Unobserved confounding
+
+Up until now, we have adjusted for confounders. But we can't adjust for unobserved confounders.
+
+### Bounds
+
+Having no unobserved confounding is unrealistic. The assumption of unconfoundedness is very strong, maybe we can make a weaker assumption that the ATE is inside an interval. We don't get the exact measure of the ATE, but only an interval.
+
+#### No-assumptions bound
+
+The outcome is bounded. For every t, a <= Y(t) <= b. ATE = E[Y(1) - Y(0)] is between (a-b) and (b-a), so it has a length limit of 2(b-a). With the no-assumptions bound, this can be cut in half. See more in slide 9 about the observational-counterfactual decomposition and how that means that this interval can be cut in half. To make it even slower, we can use the following techniques:
+
+* **Monotone treatment response**
+    - The assumption is that treatment always helps, that for every t, Y<sub>i</sub>(1) >= Y<sub>i</sub>(0). Every ITE is nonnegative, so the ATE is nonnegative.
+* **Monotone treatment selection**
+    - The assumption is that the potential outcomes of the treatment groups' are better than than the ones from the control group. E[Y(1)|T=1] >=E[Y(1)|T=0] and E[Y(0)|T=1] >=E[Y(0)|T=0]. The ATE is bounded from above by the associational difference: E[Y(1) - Y(0)] <= E[Y|T=1] - E[Y|T=0]
+* **Optimal treatment selection**
+    - The assumption is that individuals always receive the treatment group that is best for them.
+    - If T<sub>i</sub>=1, then Y<sub>i</sub>(1) >= Y<sub>i</sub>(0)
+    - If T<sub>i</sub>=0, then Y<sub>i</sub>(0) >= Y<sub>i</sub>(1)
+    - E[Y(1)|T=0] <= E[Y|T=0] and E[Y(1)|T=0] <= E[Y|T=1]
+
+### Sensitivity analysis
+
+We cast our ATE estimate as a function of how strongly the confounders affect the treatment + how strongly the confounders affect the outcome. In this section, we still assume unconfoundedness, but we assume that this is based on W (observed confounder) and U (unobserved confounder).
+
+* Linear single confounder
+* Towards more gneral settings
